@@ -1,0 +1,23 @@
+= HTTP Server =
+
+https://www.reddit.com/r/dailyprogrammer/comments/6lti17/20170707_challenge_322_hard_static_http_server/
+https://www.w3.org/Protocols/HTTP/1.0/spec.html
+
+Language: C++
+Protocol: HTTP 1.0
+Allowed networking libraries: socket.h 
+
+== Phases ==
+
+P1:
+* Implement basic GET
+* Handle static content only
+* Support document root which contains pages (and paths) served by the web server
+* Set proper content type header in response
+
+P2:
+* Implement POST and HEAD
+* Serve appropiate errors:
+** 500 for server error
+** 404 for resource not found
+** 403 for permission denied
