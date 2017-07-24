@@ -7,49 +7,47 @@
 #include <errno.h>
 #include <netdb.h>
 #include <stdexcept>
+#include <vector>
+#include <sstream>
+#include <map>
+#include <iterator>
 
 class HttpServer {
 public:
-	HttpServer();
+	HttpServer(int port);
 	~HttpServer();
-	bool start(int port);
 	int getServerSocket();
 
 private:
 	int server_socket_fd;
 };
 
-HttpServer::HttpServer() {}
-
-HttpServer::~HttpServer() {}
-
-bool HttpServer::start(int port) {
+HttpServer::HttpServer(int port) {
 	struct addrinfo hints, *res;
 	std::memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = INADDR_ANY;
 
-	getaddrinfo(NULL, std::to_string(port).c_str(), &hints, &res);
+	int ai = getaddrinfo(NULL, std::to_string(port).c_str(), &hints, &res);
+	if(ai != 0) {
+		throw std::runtime_error(std::string("getaddrinfo error: ") + gai_strerror(ai));
+	}
 
-	this->server_socket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-
-	if(this->server_socket_fd == -1) {
-		std::cerr << "Socket error: " << strerror(errno);
-		return EXIT_FAILURE;
+	if((this->server_socket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
+		throw std::runtime_error(std::string("Socket error: ") + strerror(errno));
 	}
 
 	if(bind(this->server_socket_fd, res->ai_addr, res->ai_addrlen) == -1) {
-		std::cerr << "Binding error: " << strerror(errno);
-		return EXIT_FAILURE;
+		throw std::runtime_error(std::string("Binding error: ") + strerror(errno));
 	}
 
 	if(listen(this->server_socket_fd, 10) == -1) {
-		std::cerr << "Listening error: " << strerror(errno);
-		return EXIT_FAILURE;
+		throw std::runtime_error(std::string("Listening error: ") + strerror(errno));
 	}
-	return EXIT_SUCCESS;
 }
+
+HttpServer::~HttpServer() {}
 
 int HttpServer::getServerSocket() {
 	return this->server_socket_fd;
@@ -58,31 +56,38 @@ int HttpServer::getServerSocket() {
 int main(int argc, char const *argv[])
 {
 
-	HttpServer server;
-	server.start(8888);
+	try {
+		HttpServer server(8888);
 
-	struct sockaddr_storage incoming_addr;
+		struct sockaddr_storage incoming_addr;
+		socklen_t incoming_addr_size = sizeof(incoming_addr);
+		int incoming_fd = accept(server.getServerSocket(), (struct sockaddr*) &incoming_addr, &incoming_addr_size);
 
+		if(incoming_fd == -1) {
+			throw std::runtime_error(std::string("Accept error: ") + strerror(errno));
+		}
 
-	socklen_t incoming_addr_size = sizeof(incoming_addr);
-	int incoming_fd = accept(server.getServerSocket(), (struct sockaddr*) &incoming_addr, &incoming_addr_size);
+		std::vector<char> buffer(4096);
 
-	if(incoming_fd == -1) {
-		printf("Accept error: %s\n", strerror(errno));
+		read(incoming_fd, buffer.data(), buffer.size());
+
+		std::istringstream request(buffer.data()); 
+		std::string line;
+		while(std::getline(request, line)) {
+			if(line.empty()) break;
+			// One-line tokenizing string
+			// https://stackoverflow.com/a/237280/1061193
+			std::istringstream iss(line);
+			std::vector<std::string> method{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
+
+			if(method[0] == "GET") {
+				std::string message = "HTTP/1.0 200 OK\nContent-type: text/html\n\n<H1>Success</H1>\n";
+				send(incoming_fd, message.c_str(), message.length(), 0);
+			}
+		}
 	}
-
-	std::string message = "Hello World\n";
-
-	send(incoming_fd, message.c_str(), message.length(), 0);
-
-	char server_reply[6000];
-
-	read(incoming_fd, server_reply, 6000);
-
-	for(auto i : server_reply) {
-		if(i == '\n') break;
-		else std::cout << i;
+	catch(std::exception& e) {
+		std::cout << e.what() << std::endl;
 	}
-
 	return 0;
 }
