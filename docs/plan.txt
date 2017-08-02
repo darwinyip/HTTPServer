@@ -10,6 +10,7 @@ Allowed networking libraries: socket.h
 == Phases ==
 
 P1:
+* Set up server
 * Implement basic GET
 * Handle static content only
 * Support document root which contains pages (and paths) served by the web server
