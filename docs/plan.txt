@@ -11,6 +11,7 @@ Allowed networking libraries: socket.h
 
 P1:
 * Set up server
+* Handle multiple connections
 * Implement basic GET
 * Handle static content only
 * Support document root which contains pages (and paths) served by the web server
