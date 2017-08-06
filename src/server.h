@@ -1,5 +1,5 @@
-#ifndef HTTPSERVER_H
-#define HTTPSERVER_H
+#ifndef SERVER_H
+#define SERVER_H
 
 #include <iostream>
 #include <vector>
