@@ -14,7 +14,8 @@
 int main(int argc, char const *argv[])
 {
 	try {
-		HttpServer server(8888);
+		std::string path = argv[1];
+		HttpServer server(8888, path);
 
 		while(true) {
 			struct sockaddr_storage incoming_addr;
@@ -25,13 +26,15 @@ int main(int argc, char const *argv[])
 			}
 
 			std::vector<char> buffer(4096);
-
 			read(incoming_fd, buffer.data(), buffer.size());
+			std::string request(buffer.begin(), buffer.end());
 
-			HttpHeader header = server.parseRequest(buffer);
+			HttpHeader header = server.parseRequest(request);
 			if(header.method == "GET") {
-				std::string message = "HTTP/1.0 200 OK\nContent-type: text/html\n\n<H1>Success</H1>\n";
-				send(incoming_fd, message.c_str(), message.length(), 0);
+				std::string response_header = "HTTP/1.0 200 OK\nContent-type: text/html\n\n";
+				std::string response_body = server.createResponse(header.uri);
+				std::string response = response_header + response_body;
+				send(incoming_fd, response.c_str(), response.length(), 0);
 			}
 			close(incoming_fd);
 		}

@@ -12,13 +12,15 @@ struct HttpHeader {
 
 class HttpServer {
 public:
-	HttpServer(int port);
+	HttpServer(int port, std::string root);
 	~HttpServer();
 	int getServerSocket();
-	HttpHeader parseRequest(std::vector<char> request);
+	HttpHeader parseRequest(std::string request);
+	std::string createResponse(std::string uri);
 
 private:
 	int server_socket_fd;
+	std::string root;
 };
 
 #endif

@@ -9,9 +9,10 @@
 #include <sstream>
 #include <map>
 #include <iterator>
+#include <fstream>
 #include "server.h"
 
-HttpServer::HttpServer(int port) {
+HttpServer::HttpServer(int port, std::string root) : root(root) {
 	struct addrinfo hints, *res;
 	std::memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
@@ -51,10 +52,10 @@ int HttpServer::getServerSocket() {
 	return this->server_socket_fd;
 }
 
-HttpHeader HttpServer::parseRequest(std::vector<char> request) {
+HttpHeader HttpServer::parseRequest(std::string request) {
 	HttpHeader header;
 	std::string line;
-	std::istringstream iis(request.data());
+	std::istringstream iis(request);
 
 	while(std::getline(iis, line)) {
 		if(line.size() > 1) { // Account for newline character
@@ -69,5 +70,11 @@ HttpHeader HttpServer::parseRequest(std::vector<char> request) {
 		}
 	}
 	return header;
+}
+
+std::string HttpServer::createResponse(std::string uri) {
+	std::ifstream file(this->root+uri, std::ios::out);
+	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	return content;
 }
 
