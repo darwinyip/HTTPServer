@@ -52,8 +52,30 @@ int HttpServer::getServerSocket() {
 	return this->server_socket_fd;
 }
 
-HttpHeader HttpServer::parseRequest(std::string request) {
-	HttpHeader header;
+void HttpServer::serve() {
+	while(true) {
+		struct sockaddr_storage incoming_addr;
+		socklen_t incoming_addr_size = sizeof(incoming_addr);
+		int incoming_fd = accept(this->server_socket_fd, (struct sockaddr*) &incoming_addr, &incoming_addr_size);
+		if(incoming_fd == -1) {
+			throw std::runtime_error(std::string("Accept error: ") + strerror(errno));
+		}
+
+		std::vector<char> buffer(4096);
+		read(incoming_fd, buffer.data(), buffer.size());
+		std::string request(buffer.begin(), buffer.end());
+
+		RequestHeader header = parseRequest(request);
+		if(header.method == "GET") {
+			std::string response = createResponse(header.uri).toString();
+			send(incoming_fd, response.c_str(), response.length(), 0);
+		}
+		close(incoming_fd);
+	}
+}
+
+RequestHeader HttpServer::parseRequest(std::string request) {
+	RequestHeader header;
 	std::string line;
 	std::istringstream iis(request);
 
@@ -72,9 +94,35 @@ HttpHeader HttpServer::parseRequest(std::string request) {
 	return header;
 }
 
-std::string HttpServer::createResponse(std::string uri) {
-	std::ifstream file(this->root+uri, std::ios::out);
-	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	return content;
+Response HttpServer::createResponse(std::string uri) {
+	std::ifstream file;
+	file.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+	Response response;
+	response.version = "HTTP/1.0";
+
+	try {
+		file.open(this->root+uri, std::ios::out);
+		std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		file.close();
+
+		response.status_code = 200;
+		response.reason_phrase = status_code[200];
+		response.full_response = content;
+		return response;
+	}
+	catch(std::ifstream::failure e) {
+		if(errno == ENOENT) {
+			response.status_code = 404;
+			response.reason_phrase = status_code[404];
+			response.full_response = "Sorry Not Found";
+			return response;
+		}
+		else {
+			response.status_code = 500;
+			response.reason_phrase = status_code[500];
+			response.full_response = "";
+			return response;
+		}
+	}
 }
 
