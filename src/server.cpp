@@ -107,6 +107,7 @@ Response HttpServer::createResponse(std::string uri) {
 
 		response.status_code = 200;
 		response.reason_phrase = status_code[200];
+		response.content_type = "Content-type: " + content_type[uri.substr(uri.find_last_of("."))];
 		response.full_response = content;
 		return response;
 	}
@@ -124,5 +125,9 @@ Response HttpServer::createResponse(std::string uri) {
 			return response;
 		}
 	}
+}
+
+std::string Response::toString() {
+	return version + " " + std::to_string(status_code) + " " + reason_phrase + "\n" + content_type + "\n\n" +	full_response + "\n";
 }
 

@@ -12,6 +12,23 @@ static std::map<int, std::string> status_code = {
     { 500, "Internal Server Error" }
 };
 
+static std::map<std::string, std::string> content_type = {
+    { ".html", "text/html" },
+    { ".htm", "text/html" },
+    { ".css", "text/css" },
+    { ".gif", "image/gif" },
+    { ".png", "image/png" },
+    { ".jpg", "image/jpeg" },
+    { ".json", "application/json"},
+    { ".js", "application/javascript"},
+    { ".xml", "application/xml" },
+    { ".svg", "image/svg+xml" },
+    { ".tif", "image/tiff" },
+    { ".tiff", "image/tiff" },
+    { ".ts", "application/typescript" },
+    { ".zip", "application/zip" }
+};
+
 struct RequestHeader {
 	std::string method;
 	std::string uri;
@@ -22,8 +39,9 @@ struct Response {
 	std::string version;
 	int status_code;
 	std::string reason_phrase;
+	std::string content_type;
 	std::string full_response;
-	std::string toString() {return version + " " + std::to_string(status_code) + " " + reason_phrase + "\n\n" + full_response + "\n";}
+	std::string toString();
 };
 
 class HttpServer {
